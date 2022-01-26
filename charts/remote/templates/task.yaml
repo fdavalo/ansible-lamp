@@ -30,7 +30,7 @@ spec:
       tower-cli config username {{ .Values.tower.username }} 
       tower-cli config password ${TOWER_PASSWORD} 
       tower-cli config verify_ssl {{ .Values.tower.verifyssl }} 
-      tower-cli inventory create -n $(params.hostname) --organization {{ .Values.tower.organization }}
+      tower-cli inventory create -n $(params.hostname) --organization "{{ .Values.tower.organization }}"
 
       tower-cli host create --name $(params.hostname) -i $(params.hostname) --variables '{"ansible_port":$(params.sshport),"ansible_connection":"ssh","ansible_user":"cloud-user"}'
 
