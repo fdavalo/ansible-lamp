@@ -1,0 +1,51 @@
+
+- name: Set up Apache virtualhost
+  template:
+    src: "files/host.conf.j2"
+    dest: "/etc/httpd/conf.d/{{ http_conf }}"
+
+- name: Copy poc.php
+  template:
+    src: "files/poc.php.j2"
+    dest: "/var/www/{{ http_host }}/poc.php"
+
+- name: Copy s3.php
+  template:
+    src: "files/s3.php.j2"
+    dest: "/var/www/{{ http_host }}/s3.php"
+
+- name: Copy access.php
+  template:
+    src: "files/access.php.j2"
+    dest: "/var/www/{{ http_host }}/access.php"
+
+- name: create logs dir
+  shell: "mkdir -p /var/www/your_domain/logs"
+  
+- name: selinux down for access.log demo
+  shell: "setenforce 0"
+  
+# PHP Aws SDK
+- name: Sets Up Aws Sdk
+  copy:
+    dest: "/var/www/{{ http_host }}/aws.zip"
+    src: aws.zip
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Unzip SDK
+  shell: "cd /var/www/{{ http_host }}; unzip -o aws.zip"
+  
+- name: Reload Apache
+  service:
+    name: httpd 
+    state: reloaded
+
+- name: Restart Apache
+  service:
+    name: httpd
+    state: restarted
+
+- name: selinux accepts remote db connect
+  shell: "setsebool -P httpd_can_network_connect_db 1"

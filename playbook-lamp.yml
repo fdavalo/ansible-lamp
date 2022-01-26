@@ -1,0 +1,17 @@
+# playbook.yml
+---
+  
+- name: Configure remote machines
+  hosts: all 
+  become_method: sudo
+  become_user: root 
+  become: yes           # enable root privileges
+  gather_facts: yes     # collect useful variables about remote hosts
+  vars_files:
+    - ./vars/default.yml
+  roles:
+    - base
+    - mysql
+    - php
+    - poc-bdd
+    - poc

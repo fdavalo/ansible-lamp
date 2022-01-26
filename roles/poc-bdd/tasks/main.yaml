@@ -1,0 +1,8 @@
+# PHP Info Page
+- name: Sets Up PHP Info Page
+  template:
+    src: "files/setup.mysql.j2"
+    dest: "/etc/poc.setup.mysql" 
+    
+- name: Create the MySQL database
+  shell: "mysql -e \"SOURCE /etc/poc.setup.mysql\" -uroot -p'{{ passwd_mysql_root }}'"

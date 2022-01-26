@@ -1,0 +1,14 @@
+<?php
+
+$fn = fopen("logs/access.log","r") or exit("Unable to open file!");
+
+  while(! feof($fn))  {
+        $result = fgets($fn);
+        echo $result;
+        echo "<br/>";
+        echo "\n";
+  }
+
+  fclose($fn);
+
+?>

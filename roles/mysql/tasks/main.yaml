@@ -1,0 +1,71 @@
+- name: Create mysql group
+  group:
+    name: mysql
+    state: present
+          
+- name: Set security limits for the mysql user
+  copy:
+    src: ../files/limits.conf
+    dest: /etc/security/limits.d/99-mysql.conf
+    owner: root
+    group: root
+    mode: 0644
+  
+- name: Install MySQL packages
+  yum:
+    name: "{{ packages }}"
+    state: present
+  vars:
+    packages:
+      - mariadb-server
+      - mariadb
+  
+
+- name: For now disable selinux
+  shell: "setenforce 0"
+  
+- name: Enable the MySQL service
+  service:
+    name: mariadb
+    state: started
+    enabled: true
+
+- name: Ansible check file password root changed exists.
+  stat:
+    path: /root/.my.password.changed
+  register: filerootchanged
+    
+- name: Set new root password from default temporary password
+  shell: "mysql -e \"SET PASSWORD = Password('{{ passwd_mysql_root }}');\"
+         && touch /root/.my.password.changed"
+  args:
+    creates: /root/.my.password.changed
+  when: filerootchanged.stat.exists == False
+
+- name: Restart the MySQL service after root password changed
+  service:
+    name: mariadb
+    state: restarted
+    
+# ignore_errors flag allow you to execute some steps without making script fail
+  
+- name: Create the MySQL user
+  shell: "mysql -e \"CREATE USER '{{ login_mysql_user }}'@'localhost' IDENTIFIED BY 
+         '{{ passwd_mysql_user }}'; GRANT ALL PRIVILEGES ON *.* TO 
+         '{{ login_mysql_user }}'@'localhost';\" -uroot -p'{{ passwd_mysql_root }}'"
+  ignore_errors: yes
+
+- name: Create the MySQL user remote
+  shell: "mysql -e \"CREATE USER '{{ login_mysql_user }}'@'%' IDENTIFIED BY 
+         '{{ passwd_mysql_user }}'; GRANT ALL PRIVILEGES ON *.* TO 
+         '{{ login_mysql_user }}'@'%';\" -uroot -p'{{ passwd_mysql_root }}'"
+  ignore_errors: yes
+  
+- name: Revoke the SUPER privileges from the MySQL user
+  shell: "mysql -NBe \"REVOKE SUPER ON *.* FROM {{ login_mysql_user }}@'%'\" -uroot -p'{{ passwd_mysql_root }}'"
+
+- name: Restart the MySQL service
+  service:
+    name: mariadb
+    state: restarted
+

@@ -1,0 +1,81 @@
+<html>
+<head>
+</head>
+<body>
+<h1>Hello, world !</h1>
+<?php
+  echo "<p>\n";
+  echo "Nous nous trouvons sur l'instance <b>".gethostname()."</b>.\n";
+
+date_default_timezone_set('Europe/Paris');
+
+echo "<p>\n";
+require 'aws-autoloader.php';
+use Aws\S3\S3Client;
+
+$bucket = '{{ s3_bucket }}';
+$fichier= '{{ s3_fichier }}';
+$clef_API = '{{ s3_api_key }}';
+$secret_API = '{{ s3_secret_key }}';
+$endpoint = '{{ s3_endpoint }}';
+$region = '{{ s3_region }}';
+$version = '2006-03-01';
+
+try {
+    $s3 = new S3Client([
+        'endpoint' => $endpoint,
+        'http'    => ['verify' => false],
+        'region' => $region,
+        'debug' => false,
+        'version' => $version,
+        'credentials' => [
+            'key'    => $clef_API ,
+            'secret' => $secret_API ,
+        ],
+        'use_path_style_endpoint' => true
+    ]);
+
+    $buckets = $s3->listBuckets();
+    $found = False;
+    foreach ($buckets['Buckets'] as $bucket1) {
+       echo "Bucket found ".$bucket1['Name'] . "\n";
+       if ($bucket1['Name'] == $bucket) $found = True;
+    }
+
+    if (! $found) {
+        $result = $s3->createBucket([
+            'Bucket' => $bucket,
+        ]);
+
+        echo "Create Bucket ". $bucket . " : ".$result. "\n";
+    }
+
+    $result = $s3->putObject([
+        'Bucket' => $bucket,
+        'Key' => $fichier,
+        'BucketKeyEnabled' => true,
+        'Body' => "this"."\n"."is"."\n"."a"."\n"."bucket",
+    ]);
+
+    echo "Put Object ". $fichier. " on bucket ". $bucket. " : ".$result. "\n";
+
+    $result = $s3->getObject(array(
+        'Bucket' => $bucket,
+        'Key' => $fichier,
+    ));
+
+    echo "Get Object ". $fichier. " on bucket ". $bucket. " : ".$result. "\n";
+
+    $message = "Contenu du stockage objet :\n".$result['Body']." :)\n";
+} catch (Exception $e) {
+    echo $e->getMessage() . "\n";
+
+    $message = $e->getMessage() . "\n";
+}
+
+echo $message;
+echo "</p>\n";
+
+?>
+</body>
+</html>

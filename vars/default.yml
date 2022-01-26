@@ -1,0 +1,22 @@
+---
+
+login_mysql_user: mysql 
+passwd_mysql_user: Pass4mysql$
+passwd_mysql_root: Secret4root$
+mysql_base: testndc
+mysql_server: localhost
+
+login_apache_user: php
+passwd_apache_user: Pass4php$
+http_host: "your_domain"
+http_conf: "your_domain.conf"
+http_port: "8080"
+
+disable_default: true
+
+s3_api_key: AlUA1XkdVPBw99eAHIvd
+s3_secret_key: 3ctnVenksXCoQj7ZOozNzEXAQrVoMuqV79ww+91X
+s3_endpoint: https://s3-openshift-storage.apps.ocpk2.redhat.local
+s3_region: eu-west-3
+s3_bucket: testndc
+s3_fichier: stockage_objet_NDC.txt
