@@ -51,7 +51,7 @@ spec:
     - name: app
       value: $(params.vm-prefix)-php
     - name: config-template
-      value: vm-template
+      value: pipeline-templates
     retries: 2
     taskRef:
       kind: Task
@@ -157,7 +157,7 @@ spec:
     - name: service-config
       value: service-8080.yaml
     - name: config-template
-      value: templates
+      value: pipeline-templates
     runAfter:
     - create-vm-php-1
     - create-vm-php-2
