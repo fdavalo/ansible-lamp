@@ -1,0 +1,13 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: {{ .Values.vm.prefix }}-php 
+spec:
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+  selector:
+    service-selector: {{ .Values.vm.prefix }}-php
+  type: ClusterIP
+  sessionAffinity: None

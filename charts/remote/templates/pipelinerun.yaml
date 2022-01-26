@@ -1,0 +1,16 @@
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  annotations: 
+    "helm.sh/hook": post-install
+  name: create-poc-setup-{{ .Values.vm.prefix }}
+  labels:
+    tekton.dev/pipeline: create-poc-setup
+spec:
+  params:
+    - name: vm-prefix
+      value: {{ .Values.vm.prefix }} 
+  pipelineRef:
+    name: create-poc-setup
+  serviceAccountName: pipeline
+  timeout: 1h0m0s

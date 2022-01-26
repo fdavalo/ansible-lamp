@@ -1,0 +1,3 @@
+resources:
+  - imagestream.yaml
+  - buildconfig.yaml

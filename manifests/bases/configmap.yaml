@@ -1,0 +1,129 @@
+apiVersion: v1
+data:
+  vm-config.yaml: |
+    apiVersion: kubevirt.io/v1alpha3
+    kind: VirtualMachine
+    metadata:
+      annotations:
+        name.os.template.kubevirt.io/rhel7.9: Red Hat Enterprise Linux 7.0 or higher
+        vm.kubevirt.io/flavor: small
+        vm.kubevirt.io/os: rhel7
+        vm.kubevirt.io/workload: server
+      name: ${VM_NAME} 
+      labels:
+        app: ${VM_NAME} 
+        flavor.template.kubevirt.io/small: "true"
+        os.template.kubevirt.io/rhel7.9: "true"
+        vm.kubevirt.io/template: rhel7-server-small
+        vm.kubevirt.io/template.namespace: openshift
+        vm.kubevirt.io/template.revision: "1"
+        vm.kubevirt.io/template.version: v0.13.1
+        workload.template.kubevirt.io/server: "true"
+    spec:
+      dataVolumeTemplates:
+      - metadata:
+          creationTimestamp: null
+          name: ${VM_NAME}-disk 
+        spec:
+          pvc:
+            accessModes:
+            - ReadWriteMany
+            resources:
+              requests:
+                storage: 20Gi
+            storageClassName: ocs-storagecluster-cephfs
+            volumeMode: Filesystem
+          source:
+            pvc:
+              name: rhel7
+              namespace:  openshift-virtualization-os-images 
+      running: true 
+      template:
+        metadata:
+          labels:
+            service-selector: ${APP_NAME}
+            flavor.template.kubevirt.io/small: "true"
+            kubevirt.io/domain: ${VM_NAME} 
+            kubevirt.io/size: small
+            os.template.kubevirt.io/rhel7.9: "true"
+            vm.kubevirt.io/name: ${VM_NAME} 
+            workload.template.kubevirt.io/server: "true"
+        spec:
+          domain:
+            cpu:
+              cores: 1
+              sockets: 1
+              threads: 1
+            devices:
+              disks:
+              - disk:
+                  bus: virtio
+                name: cloudinitdisk
+              - bootOrder: 1
+                disk:
+                  bus: virtio
+                name: rootdisk
+              interfaces:
+              - masquerade: {}
+                model: virtio
+                name: default
+              networkInterfaceMultiqueue: true
+              rng: {}
+            machine:
+              type: pc-q35-rhel8.3.0
+            resources:
+              requests:
+                memory: 2Gi
+          evictionStrategy: LiveMigrate
+          hostname: ${VM_NAME} 
+          networks:
+          - name: default
+            pod: {}
+          terminationGracePeriodSeconds: 10
+          volumes:
+          - cloudInitNoCloud:
+              userData: |
+                #cloud-config
+                user: cloud-user
+                password: rhpoc
+                chpasswd:
+                  expire: false
+                ssh_pwauth: True
+                ssh_authorized_keys:
+                  - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCp6xDj/6K3efBzb7bSQvEEZeSLxGYABuNrKNi5sOhRPamJNESlTTqFmYBsYOV8UAsG8I0qacF7QXq/zss84ZtgQfDJbYvR4f/aGdWaOCoiv2YkI46cEouWEs5hbMUz7U7FhiZ9Bv9mGyusDGW2SdRXvDYCW3CEPi4I1hn/9jp/dGqhhBHwfOjomyUzj35YO6MQhAwO1FlDwiiOO9XovzVAAa2WXkNd43Qp1/IPapdIixeem1xEt/JlqG6dGKqWWqgs+2X60b66ARJfM86Fk148l6TfNrm20u4dLnNS8xNukHy1qlImvmkSJYXN5kvKxWSfWjPxy8veRCPzQYmoRm1V redhat@gohan 
+            name: cloudinitdisk
+          - dataVolume:
+              name: ${VM_NAME}-disk
+            name: rootdisk
+  service-8080.yaml: |
+    kind: Service
+    apiVersion: v1
+    metadata:
+      name: ${APP_NAME}
+    spec:
+      ports:
+        - protocol: TCP
+          port: 8080
+          targetPort: 8080
+      selector:
+        service-selector: ${APP_NAME}
+      type: ClusterIP
+      sessionAffinity: None
+  pipelinerun.yaml: | 
+    apiVersion: tekton.dev/v1beta1
+    kind: PipelineRun
+    metadata:
+      name: create-poc-setup-${APP_NAME}
+      labels:
+        tekton.dev/pipeline: create-poc-setup
+    spec:
+      params:
+        - name: vm-prefix
+          value: ${APP_NAME}
+      pipelineRef:
+        name: create-poc-setup
+      serviceAccountName: pipeline
+      timeout: 1h0m0s
+kind: ConfigMap
+metadata:
+  name: templates

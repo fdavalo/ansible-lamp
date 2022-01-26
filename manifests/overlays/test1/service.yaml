@@ -1,0 +1,13 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: test1-php
+spec:
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+  selector:
+    service-selector: test1-php
+  type: ClusterIP
+  sessionAffinity: None

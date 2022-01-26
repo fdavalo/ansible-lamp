@@ -1,0 +1,13 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: helm-repo
+spec:
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+  selector:
+    app: helm-repo
+  type: ClusterIP
+  sessionAffinity: None

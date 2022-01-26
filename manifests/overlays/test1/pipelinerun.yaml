@@ -1,0 +1,14 @@
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  name: create-poc-setup-test1
+  labels:
+    tekton.dev/pipeline: create-poc-setup
+spec:
+  params:
+    - name: vm-prefix
+      value: test1
+  pipelineRef:
+    name: create-poc-setup
+  serviceAccountName: pipeline
+  timeout: 1h0m0s

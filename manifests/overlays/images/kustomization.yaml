@@ -1,0 +1,6 @@
+
+bases:
+  - ../../bases-images
+resources:
+  - starter.yaml
+  - rolebinding.yaml

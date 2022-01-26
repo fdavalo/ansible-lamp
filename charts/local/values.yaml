@@ -1,0 +1,5 @@
+
+git:
+  repository: https://github.com/poc-ocp-0321/ansible-lamp.git 
+  secret: github-poc-ocp-0321 
+

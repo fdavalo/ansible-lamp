@@ -1,0 +1,4 @@
+resources:
+  - configmap.yaml
+  - task.yaml
+  - pipeline.yaml

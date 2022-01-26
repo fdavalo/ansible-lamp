@@ -1,0 +1,202 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: create-poc-setup
+spec:
+  params:
+  - name: vm-prefix
+    type: string
+  tasks:
+  - name: create-vm-bdd
+    params:
+    - name: vm
+      value: $(params.vm-prefix)-bdd
+    - name: app
+      value: $(params.vm-prefix)-bdd
+    - name: config-template
+      value: templates
+    timeout: "0h15m01s"
+    taskRef:
+      kind: Task
+      name: create-vm
+  - name: wait-vm-bdd-ssh
+    params:
+    - name: hostname
+      value: $(tasks.create-vm-bdd.results.hostname)
+    - name: port
+      value: $(tasks.create-vm-bdd.results.sshport)
+    runAfter:
+    - create-vm-bdd
+    taskRef:
+      kind: Task
+      name: wait-vm-ssh
+  - name: install-vm-bdd
+    params:
+    - name: playbook
+      value: poc-bdd
+    - name: hostname
+      value: $(tasks.create-vm-bdd.results.hostname)
+    - name: sshport
+      value: $(tasks.create-vm-bdd.results.sshport)
+    retries: 1
+    runAfter:
+    - wait-vm-bdd-ssh
+    taskRef:
+      kind: Task
+      name: ansible-playbook
+  - name: create-vm-php-1
+    params:
+    - name: vm
+      value: $(params.vm-prefix)-php-1
+    - name: app
+      value: $(params.vm-prefix)-php
+    - name: config-template
+      value: templates
+    timeout: "0h15m01s"
+    taskRef:
+      kind: Task
+      name: create-vm
+  - name: wait-vm-php-1-ssh
+    params:
+    - name: hostname
+      value: $(tasks.create-vm-php-1.results.hostname)
+    - name: port
+      value: $(tasks.create-vm-php-1.results.sshport)
+    runAfter:
+    - create-vm-php-1
+    taskRef:
+      kind: Task
+      name: wait-vm-ssh
+  - name: install-vm-php-1
+    params:
+    - name: playbook
+      value: poc-php
+    - name: hostname
+      value: $(tasks.create-vm-php-1.results.hostname)
+    - name: sshport
+      value: $(tasks.create-vm-php-1.results.sshport)
+    - name: extra-args
+      value: --extra-vars "mysql_server=$(tasks.expose-service-bdd.results.hostname)"
+    retries: 1
+    runAfter:
+    - wait-vm-php-1-ssh
+    - expose-service-bdd
+    taskRef:
+      kind: Task
+      name: ansible-playbook
+  - name: expose-setup-http-1
+    params:
+    - name: vm
+      value: $(params.vm-prefix)-php-1
+    - name: port
+      value: "8080"
+    - name: timeout
+      value: 3m
+    runAfter:
+    - create-vm-php-1
+    taskRef:
+      kind: Task
+      name: expose-vm-port
+  - name: create-vm-php-2
+    params:
+    - name: vm
+      value: $(params.vm-prefix)-php-2
+    - name: app
+      value: $(params.vm-prefix)-php
+    - name: config-template
+      value: templates
+    timeout: "0h15m01s"
+    taskRef:
+      kind: Task
+      name: create-vm
+  - name: wait-vm-php-2-ssh
+    params:
+    - name: hostname
+      value: $(tasks.create-vm-php-2.results.hostname)
+    - name: port
+      value: $(tasks.create-vm-php-2.results.sshport)
+    runAfter:
+    - create-vm-php-2
+    taskRef:
+      kind: Task
+      name: wait-vm-ssh
+  - name: install-vm-php-2
+    params:
+    - name: playbook
+      value: poc-php
+    - name: hostname
+      value: $(tasks.create-vm-php-2.results.hostname)
+    - name: sshport
+      value: $(tasks.create-vm-php-2.results.sshport)
+    - name: extra-args
+      value: --extra-vars "mysql_server=$(tasks.expose-service-bdd.results.hostname)"
+    retries: 1
+    runAfter:
+    - wait-vm-php-2-ssh
+    - expose-service-bdd
+    taskRef:
+      kind: Task
+      name: ansible-playbook
+  - name: expose-setup-http-2
+    params:
+    - name: vm
+      value: $(params.vm-prefix)-php-2
+    - name: port
+      value: "8080"
+    - name: timeout
+      value: 3m
+    runAfter:
+    - create-vm-php-2
+    taskRef:
+      kind: Task
+      name: expose-vm-port
+  - name: create-service-http
+    params:
+    - name: app
+      value: $(params.vm-prefix)-php
+    - name: service-config
+      value: service-8080.yaml
+    - name: config-template
+      value: templates
+    runAfter:
+    - create-vm-php-1
+    - create-vm-php-2
+    taskRef:
+      kind: Task
+      name: create-service      
+  - name: expose-service-http
+    params:
+    - name: svc
+      value: $(params.vm-prefix)-php
+    - name: timeout
+      value: 3m
+    runAfter:
+    - create-service-http
+    taskRef:
+      kind: Task
+      name: expose-service
+  - name: expose-service-bdd
+    params:
+    - name: vm
+      value: $(params.vm-prefix)-bdd
+    - name: port
+      value: "3306"
+    - name: route
+      value: "false"
+    runAfter:
+    - create-vm-bdd
+    taskRef:
+      kind: Task
+      name: expose-vm-port
+  - name: test-setup
+    params:
+    - name: hostname
+      value: $(tasks.expose-service-http.results.hostname)
+    runAfter:
+    - install-vm-bdd
+    - install-vm-php-1
+    - install-vm-php-2
+    - expose-service-http
+    taskRef:
+      kind: Task
+      name: test-poc

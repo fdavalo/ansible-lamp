@@ -1,0 +1,53 @@
+kind: ImageStream
+apiVersion: image.openshift.io/v1
+metadata:
+  name: oc-virtctl
+  labels:
+    build: oc-virtctl
+spec:
+  lookupPolicy:
+    local: false
+---
+kind: ImageStream
+apiVersion: image.openshift.io/v1
+metadata:
+  name: tower-cli
+  labels:
+    build: tower-cli
+spec:
+  lookupPolicy:
+    local: false
+---
+kind: ImageStream
+apiVersion: image.openshift.io/v1
+metadata:
+  name: python-36
+  labels:
+    build: tower-cli
+spec:
+  lookupPolicy:
+    local: false
+  tags:
+    - name: latest
+      annotations:
+        openshift.io/imported-from: registry.access.redhat.com/ubi8/python-36
+      from:
+        kind: DockerImage
+        name: registry.access.redhat.com/ubi8/python-36
+---
+kind: ImageStream
+apiVersion: image.openshift.io/v1
+metadata:
+  name: ubi
+  labels:
+    build: oc-virtctl
+spec:
+  lookupPolicy:
+    local: false
+  tags:
+    - name: latest
+      annotations:
+        openshift.io/imported-from: registry.access.redhat.com/ubi7/ubi
+      from:
+        kind: DockerImage
+        name: registry.access.redhat.com/ubi7/ubi

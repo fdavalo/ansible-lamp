@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: starter
+  name: starter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: starter
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: starter
+    spec:
+      serviceAccount: pipeline
+      volumes:
+        - name: configmap
+          configMap:
+            name: templates
+        - name: share
+          emptyDir: {}
+      containers:
+        - name: starter
+          command:
+            - /bin/bash
+            - '-c'
+          volumeMounts:
+            - name: configmap
+              mountPath: /var/configmap
+            - name: share
+              mountPath: /var/share              
+          image: image-registry.openshift-image-registry.svc:5000/images/oc-virtctl
+          args:
+            - >-
+              let nb=0 
+              
+              while [[ $nb -lt 10 ]]; do
+          
+                oc get pipelines.tekton.dev create-poc-setup
+          
+                if [[ $ret -eq 0 ]]; then nb=0; break; fi
+          
+                let nb=nb+1
+          
+                sleep 10
+              done
+        
+              if [[ $nb -ne 0 ]]; then echo "could not start create-poc-setup"; exit 1; fi
+        
+              sed "s/\${APP_NAME}/lamp/g" /var/configmap/pipelinerun.yaml > /var/share/pipelinerun.yaml
+               
+              oc apply -f /var/share/pipelinerun.yaml
+              
+              tail -f /dev/null
+      restartPolicy: Always

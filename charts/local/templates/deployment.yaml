@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: helm-repo
+  name: helm-repo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: helm-repo
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: helm-repo
+    spec:
+      volumes:
+        - name: workdir
+          emptyDir: {}
+      initContainers:
+        - resources: {}
+          terminationMessagePath: /dev/termination-log
+          name: init-myservice
+          command:
+            - /bin/sh
+            - '-c'
+          env:
+            - name: TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: github-poc-ocp-0321
+                  key: accessToken
+          imagePullPolicy: Always
+          volumeMounts:
+            - name: workdir
+              mountPath: /www
+          terminationMessagePolicy: File
+          image: quay.io/bitnami/git
+          args:
+            - >-
+              cd /www; export HTTP_PROXY=http://192.168.100.1:8080; export
+              HTTPS_PROXY=http://192.168.100.1:8080; git clone
+              https://fdavalo:$TOKEN@github.com/poc-ocp-0321/ansible-lamp.git
+        - resources: {}
+          terminationMessagePath: /dev/termination-log
+          name: helm-package
+          command:
+            - /bin/sh
+            - '-c'
+          imagePullPolicy: Always
+          volumeMounts:
+            - name: workdir
+              mountPath: /www
+          terminationMessagePolicy: File
+          image: quay.io/wire/alpine-helm
+          args:
+            - >-
+              sleep 5; cd /www; helm package ansible-lamp/charts/remote; helm
+              repo index . 
+      containers:
+        - resources: {}
+          terminationMessagePath: /dev/termination-log
+          name: repo-helm
+          command:
+            - /bin/sh
+            - '-c'
+          imagePullPolicy: Always
+          volumeMounts:
+            - name: workdir
+              mountPath: /www
+          terminationMessagePolicy: File
+          image: registry.access.redhat.com/ubi8/python-36
+          args:
+            - >-
+              cd /www; rm -rf ansible-lamp; python -m http.server 8080 -b
+              0.0.0.0
+      restartPolicy: Always

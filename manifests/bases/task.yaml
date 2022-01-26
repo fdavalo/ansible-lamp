@@ -1,0 +1,428 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: ansible-playbook
+spec:
+  params:
+  - name: playbook
+    type: string
+  - name: hostname
+    type: string
+  - name: sshport
+    type: string
+  - default: ""
+    name: extra-args
+    type: string
+  steps:
+  - image: image-registry.openshift-image-registry.svc:5000/images/tower-cli
+    name: start-playbook
+    env:
+    - name: TOWER_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: github-poc-ocp-0321
+          key: tower-password
+    resources: {}
+    script: |
+      #!/usr/bin/env bash
+      tower-cli config host ansible-tower-web-svc-ansible-tower.apps.ocpk1.redhat.local
+      tower-cli config username admin
+      tower-cli config password ${TOWER_PASSWORD}
+      tower-cli config verify_ssl false
+      tower-cli inventory create -n $(params.hostname) --organization Default
+      
+      if [[ $? -eq 1 ]]; then echo "the inventory could not be created"; exit 1; fi
+
+      tower-cli host create --name $(params.hostname) -i $(params.hostname) --variables '{"ansible_port":$(params.sshport),"ansible_connection":"ssh","ansible_user":"cloud-user"}'
+
+      tower-cli host modify --name $(params.hostname) -i $(params.hostname) --variables '{"ansible_port":$(params.sshport),"ansible_connection":"ssh","ansible_user":"cloud-user"}'
+
+      if [[ $? -eq 1 ]]; then echo "the host not be created"; exit 1; fi
+      
+      tower-cli job launch --job-template $(params.playbook) --credential cle-ssh --inventory $(params.hostname) --monitor $(params.extra-args) | awk '{print $0 >> "job.output"; print $0;}'
+      
+      if [[ $(tail -2 job.output | grep successful | wc -l) -ne 1 ]]; then echo "the job was not successful"; exit 1; fi
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  annotations:
+    tekton.dev/displayName: Create-VM
+    tekton.dev/pipelines.minVersion: "0.1"
+    tekton.dev/tags: cli
+  labels:
+    app.kubernetes.io/version: "0.1"
+    operator.tekton.dev/provider-type: redhat
+  name: create-vm
+spec:
+  description: This task will create and check the vm is available on ssh.
+  params:
+  - description: The name for the vm
+    name: vm
+    type: string
+  - description: The name for the application
+    name: app
+    type: string    
+  - description: The name of the configmap template for the vm
+    name: config-template
+    type: string
+  results:
+  - description: The hostname for the vm
+    name: hostname
+  - description: The node port for the ssh route
+    name: sshport
+  steps:
+  - image: image-registry.openshift-image-registry.svc:5000/images/oc-virtctl
+    name: create-vm
+    resources: {}
+    script: >
+        #!/usr/bin/env bash
+
+        oc get vm $(params.vm)
+
+        if [[ $? -eq 1 ]]; then
+
+          sed "s/\${VM_NAME}/$(params.vm)/g" /var/configmap/vm-config.yaml > /var/share/vm-config.yaml
+
+          sed -i "s/\${APP_NAME}/$(params.app)/g" /var/share/vm-config.yaml
+
+          oc create -f /var/share/vm-config.yaml
+
+          if [[ $? -eq 1 ]]; then echo "vm could not be created"; exit 1; fi
+
+          oc wait --for=condition=Ready vm $(params.vm) --timeout=900s
+
+          if [[ $? -eq 1 ]]; then echo "vm not ready on expected time"; exit 1; fi
+
+          oc wait --for=condition=Ready vmi $(params.vm) --timeout=30s
+
+          if [[ $? -eq 1 ]]; then echo "vmi not ready on expected time"; exit 1; fi
+
+        fi
+        
+        oc get svc $(params.vm)-ssh
+
+        if [[ $? -eq 1 ]]; then
+
+          virtctl expose vmi $(params.vm) --port=22 --name=$(params.vm)-ssh --type=NodePort
+
+          if [[ $? -eq 1 ]]; then echo "vmi could not be exposed"; exit 1; fi
+
+        fi
+
+        oc get route $(params.vm)-ssh
+
+        if [[ $? -eq 1 ]]; then
+
+          oc expose svc $(params.vm)-ssh
+
+          if [[ $? -eq 1 ]]; then echo "ssh could not be exposed"; exit 1; fi
+
+        fi
+
+        url=$(oc get route $(params.vm)-ssh -o jsonpath='{ .spec.host }')
+
+        echo -n $url > $(results.hostname.path)
+
+        port=$(oc get svc $(params.vm)-ssh -o jsonpath='{.spec.ports[].nodePort}')
+
+        echo -n $port > $(results.sshport.path)
+    volumeMounts:
+    - mountPath: /var/configmap
+      name: configtemplate
+    - mountPath: /var/share
+      name: share
+  volumes:
+  - configMap:
+      name: $(params.config-template)
+    name: configtemplate
+  - emptyDir: {}
+    name: share
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  annotations:
+    tekton.dev/displayName: Delete-VM
+    tekton.dev/pipelines.minVersion: "0.1"
+    tekton.dev/tags: cli
+  labels:
+    app.kubernetes.io/version: "0.1"
+    operator.tekton.dev/provider-type: redhat
+  name: delete-vm
+spec:
+  description: This task will delete the vm
+  params:
+  - description: The name for the vm
+    name: vm
+    type: string
+  steps:
+  - image: registry.access.redhat.com/ubi7/ubi
+    name: delete-vm
+    resources: {}
+    script: "#!/usr/bin/env bash\ncurl https://mirror.openshift.com/pub/openshift-v4/clients/ocp/4.7.2/openshift-client-linux-4.7.2.tar.gz -o openshift-client-linux-4.7.2.tar.gz \ntar zxvf openshift-client-linux-4.7.2.tar.gz \n./oc get vm $(params.vm)\nif [[ $? -eq 1 ]]; then echo \"vm already deleted\"; exit 0; fi\n./oc delete vm $(params.vm)\n"
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  annotations:
+    tekton.dev/displayName: Delete-VM-SVC
+    tekton.dev/pipelines.minVersion: "0.1"
+    tekton.dev/tags: cli
+  labels:
+    app.kubernetes.io/version: "0.1"
+    operator.tekton.dev/provider-type: redhat
+  name: delete-vm-svc
+spec:
+  description: This task will delete the vm service
+  params:
+  - description: The name for the vm
+    name: vm
+    type: string
+  - description: The name for the vm svc
+    name: svc
+    type: string
+  steps:
+  - image: registry.access.redhat.com/ubi7/ubi
+    name: delete-vm-svc
+    resources: {}
+    script: "#!/usr/bin/env bash\ncurl https://mirror.openshift.com/pub/openshift-v4/clients/ocp/4.7.2/openshift-client-linux-4.7.2.tar.gz -o openshift-client-linux-4.7.2.tar.gz \ntar zxvf openshift-client-linux-4.7.2.tar.gz \n./oc get svc $(params.vm)-$(params.svc)\nif [[ $? -eq 1 ]]; then echo \"vm service already deleted\"; exit 0; fi\n./oc delete svc $(params.vm)-$(params.svc)\n./oc delete route $(params.vm)-$(params.svc)\n"
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  annotations:
+    tekton.dev/displayName: Expose-VM-Port
+    tekton.dev/pipelines.minVersion: "0.1"
+    tekton.dev/tags: cli
+  labels:
+    app.kubernetes.io/version: "0.1"
+    operator.tekton.dev/provider-type: redhat
+  name: expose-vm-port
+spec:
+  description: This task will create and check the vm is available on ssh.
+  params:
+  - description: The name for the vm
+    name: vm
+    type: string
+  - description: The port to expose
+    name: port
+    type: string
+  - default: 30s
+    description: The timeout
+    name: timeout
+    type: string
+  - default: "true"
+    description: Need a route
+    name: route
+    type: string
+  results:
+  - description: The hostname for the vm
+    name: hostname
+  steps:
+  - image: image-registry.openshift-image-registry.svc:5000/images/oc-virtctl
+    name: expose-vm-port
+    resources: {}
+    script: >
+        #!/usr/bin/env bash
+
+        oc get svc $(params.vm)-$(params.port)
+
+        if [[ $? -eq 1 ]]; then
+
+          virtctl expose vmi $(params.vm) --port=$(params.port) --name=$(params.vm)-$(params.port)
+
+          if [[ $? -eq 1 ]]; then echo "vmi could not be exposed"; exit 1; fi
+
+        fi
+
+        if [[ "$(params.route)" == "true" ]]; then
+
+          oc get route $(params.vm)-$(params.port)
+
+          if [[ $? -eq 1 ]]; then
+
+            oc expose svc $(params.vm)-$(params.port)
+
+            if [[ $? -eq 1 ]]; then echo "port $(params.port) could not be exposed"; exit 1; fi
+
+          fi
+
+          oc annotate route $(params.vm)-$(params.port) --overwrite haproxy.router.openshift.io/timeout=$(params.timeout)
+
+          url=$(oc get route $(params.vm)-$(params.port) -o jsonpath='{ .spec.host }')
+
+          echo -n $url > $(results.hostname.path)
+
+        else
+
+          echo -n  $(params.vm)-$(params.port) > $(results.hostname.path)
+
+        fi
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  annotations:
+    tekton.dev/displayName: Test-POC
+    tekton.dev/pipelines.minVersion: "0.1"
+    tekton.dev/tags: cli
+  labels:
+    app.kubernetes.io/version: "0.1"
+    operator.tekton.dev/provider-type: redhat
+  name: test-poc
+spec:
+  description: This task will test poc url
+  params:
+  - description: The hostname for the vm php
+    name: hostname
+    type: string
+  steps:
+  - image: registry.access.redhat.com/ubi7/ubi
+    name: test-poc
+    resources: {}
+    script: |
+      #!/usr/bin/env bash
+      curl -v http://$(params.hostname)/info.php
+      curl -v http://$(params.hostname)/s3.php
+      curl -v http://$(params.hostname)/poc.php
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  annotations:
+    tekton.dev/displayName: WAIT-VM-SSH
+    tekton.dev/pipelines.minVersion: "0.1"
+    tekton.dev/tags: cli
+  labels:
+    app.kubernetes.io/version: "0.1"
+    operator.tekton.dev/provider-type: redhat
+  name: wait-vm-ssh
+spec:
+  description: This task will create and check the vm is available on ssh.
+  params:
+  - description: The hostname for the vm
+    name: hostname
+    type: string
+  - description: The ssh port
+    name: port
+    type: string
+  steps:
+  - image: registry.access.redhat.com/ubi7/ubi
+    name: create-vm
+    resources: {}
+    script: |
+        #!/usr/bin/env bash
+        let nb=0 
+        while [[ $nb -lt 10 ]]; do
+          
+          echo > /dev/tcp/$(params.hostname)/$(params.port)
+          
+          ret=$?
+          
+          if [[ $ret -eq 0 ]]; then nb=0; break; fi
+          
+          let nb=nb+1
+          
+          sleep 10
+
+        done
+        exit $nb 
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  annotations:
+    tekton.dev/displayName: Expose-Service
+    tekton.dev/pipelines.minVersion: "0.1"
+    tekton.dev/tags: cli
+  labels:
+    app.kubernetes.io/version: "0.1"
+    operator.tekton.dev/provider-type: redhat
+  name: expose-service
+spec:
+  description: This task will create the route.
+  params:
+  - description: The name for the service
+    name: svc
+    type: string
+  - default: 30s
+    description: The timeout
+    name: timeout
+    type: string
+  results:
+  - description: The hostname for the service
+    name: hostname
+  steps:
+  - image: image-registry.openshift-image-registry.svc:5000/images/oc-virtctl
+    name: expose-service
+    resources: {}
+    script: >
+        #!/usr/bin/env bash
+
+        oc get svc $(params.svc)
+
+        if [[ $? -eq 1 ]]; then echo "service could not be exposed"; exit 1; fi
+
+        oc get route $(params.svc)
+
+        if [[ $? -eq 1 ]]; then
+
+          oc expose svc $(params.svc)
+
+          if [[ $? -eq 1 ]]; then echo "service $(params.svc) could not be exposed"; exit 1; fi
+
+        fi
+
+        oc annotate route $(params.svc) --overwrite haproxy.router.openshift.io/timeout=$(params.timeout)
+
+        url=$(oc get route $(params.svc) -o jsonpath='{ .spec.host }')
+
+        echo -n $url > $(results.hostname.path)
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  annotations:
+    tekton.dev/displayName: Create-Service
+    tekton.dev/pipelines.minVersion: "0.1"
+    tekton.dev/tags: cli
+  labels:
+    app.kubernetes.io/version: "0.1"
+    operator.tekton.dev/provider-type: redhat
+  name: create-service
+spec:
+  description: This task will create a service
+  params:
+  - description: The name for the app
+    name: app
+    type: string
+  - description: The key for the service
+    name: service-config
+    type: string    
+  - description: The name of the configmap template for the vm
+    name: config-template
+    type: string
+  steps:
+  - image: image-registry.openshift-image-registry.svc:5000/images/oc-virtctl
+    name: create-service
+    resources: {}
+    script: >
+        #!/usr/bin/env bash
+
+        sed "s/\${APP_NAME}/$(params.app)/g" /var/configmap/$(params.service-config) > /var/share/$(params.service-config)
+        
+        oc apply -f /var/share/$(params.service-config)
+
+        if [[ $? -eq 1 ]]; then echo "service could not be created"; exit 1; fi
+    volumeMounts:
+    - mountPath: /var/configmap
+      name: configtemplate
+    - mountPath: /var/share
+      name: share
+  volumes:
+  - configMap:
+      name: $(params.config-template)
+    name: configtemplate
+  - emptyDir: {}
+    name: share

@@ -1,0 +1,15 @@
+
+vm:
+  sshpublickeyaccess: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCp6xDj/6K3efBzb7bSQvEEZeSLxGYABuNrKNi5sOhRPamJNESlTTqFmYBsYOV8UAsG8I0qacF7QXq/zss84ZtgQfDJbYvR4f/aGdWaOCoiv2YkI46cEouWEs5hbMUz7U7FhiZ9Bv9mGyusDGW2SdRXvDYCW3CEPi4I1hn/9jp/dGqhhBHwfOjomyUzj35YO6MQhAwO1FlDwiiOO9XovzVAAa2WXkNd43Qp1/IPapdIixeem1xEt/JlqG6dGKqWWqgs+2X60b66ARJfM86Fk148l6TfNrm20u4dLnNS8xNukHy1qlImvmkSJYXN5kvKxWSfWjPxy8veRCPzQYmoRm1V redhat@gohan"
+  storageclass: ocs-storagecluster-ceph-rbd
+  source:
+    pvc: rhel7
+    namespace: openshift-virtualization-os-images 
+
+  prefix: vm 
+
+tower:
+  host: ansible-tower-web-svc-ansible-tower.apps.ocpk1.redhat.local
+  username: admin
+  verifyssl: false
+
