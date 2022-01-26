@@ -150,6 +150,20 @@ spec:
     taskRef:
       kind: Task
       name: expose-vm-port
+  - name: create-service-http
+    params:
+    - name: app
+      value: $(params.vm-prefix)-php
+    - name: service-config
+      value: service-8080.yaml
+    - name: config-template
+      value: templates
+    runAfter:
+    - create-vm-php-1
+    - create-vm-php-2
+    taskRef:
+      kind: Task
+      name: create-service       
   - name: expose-setup-http
     params:
     - name: svc
@@ -157,8 +171,7 @@ spec:
     - name: timeout
       value: 3m
     runAfter:
-    - create-vm-php-1
-    - create-vm-php-2
+    - create-service-http
     taskRef:
       kind: Task
       name: expose-service
