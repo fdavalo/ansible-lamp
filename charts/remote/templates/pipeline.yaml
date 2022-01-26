@@ -14,7 +14,7 @@ spec:
     - name: app
       value: $(params.vm-prefix)-bdd
     - name: config-template
-      value: vm-template
+      value: pipeline-templates
     retries: 2
     taskRef:
       kind: Task
@@ -104,7 +104,7 @@ spec:
     - name: app
       value: $(params.vm-prefix)-php
     - name: config-template
-      value: vm-template
+      value: pipeline-templates
     retries: 2
     taskRef:
       kind: Task
