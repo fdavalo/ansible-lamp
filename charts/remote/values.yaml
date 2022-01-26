@@ -12,6 +12,6 @@ tower:
   host: ansible-tower-web-svc-ansible-tower.apps.ocpk1.redhat.local
   username: admin
   verifyssl: false
-  credentials: cle-ssh
+  credential: cle-ssh
   organization: Default
 
