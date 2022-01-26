@@ -89,8 +89,8 @@ data:
                 chpasswd:
                   expire: false
                 ssh_pwauth: True
-                ssh_authorized_keys:
-                  - {{ .Values.vm.sshpublickeyaccess }}
+                #ssh_authorized_keys:
+                #  - {{ .Values.vm.sshpublickeyaccess }}
             name: cloudinitdisk
           - dataVolume:
               name: ${VM_NAME}-disk
