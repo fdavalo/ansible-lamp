@@ -197,6 +197,59 @@ apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
   annotations:
+    tekton.dev/displayName: Create-Service
+    tekton.dev/pipelines.minVersion: "0.1"
+    tekton.dev/tags: cli
+  labels:
+    app.kubernetes.io/version: "0.1"
+    operator.tekton.dev/provider-type: redhat
+  name: create-service
+spec:
+  description: This task will create a service
+  params:
+  - description: The name for the app
+    name: app
+    type: string
+  - description: The key for the service
+    name: service-config
+    type: string    
+  - description: The name of the configmap template for the vm
+    name: config-template
+    type: string
+  steps:
+  - image: registry.access.redhat.com/ubi7/ubi
+    name: create-service
+    resources: {}
+    script: >
+        #!/usr/bin/env bash
+        
+        curl
+        https://mirror.openshift.com/pub/openshift-v4/clients/ocp/4.7.2/openshift-client-linux-4.7.2.tar.gz
+        -o openshift-client-linux-4.7.2.tar.gz 
+
+        tar zxvf openshift-client-linux-4.7.2.tar.gz
+        
+        sed "s/\${APP_NAME}/$(params.app)/g" /var/configmap/$(params.service-config) > /var/share/$(params.service-config)
+        
+        ./oc apply -f /var/share/$(params.service-config)
+        
+        if [[ $? -eq 1 ]]; then echo "service could not be created"; exit 1; fi
+    volumeMounts:
+    - mountPath: /var/configmap
+      name: configtemplate
+    - mountPath: /var/share
+      name: share
+  volumes:
+  - configMap:
+      name: $(params.config-template)
+    name: configtemplate
+  - emptyDir: {}
+    name: share
+---    
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  annotations:
     tekton.dev/displayName: Expose-VM-Port
     tekton.dev/pipelines.minVersion: "0.1"
     tekton.dev/tags: cli
