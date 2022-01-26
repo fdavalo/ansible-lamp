@@ -27,12 +27,12 @@ data:
         spec:
           pvc:
             accessModes:
-            - ReadWriteOnce
+            - ReadWriteMany
             resources:
               requests:
                 storage: 20Gi
             storageClassName: {{ .Values.vm.storageclass }}
-            volumeMode: Filesystem
+            volumeMode: Block
           source:
             pvc:
               name: {{ .Values.vm.source.pvc }} 
