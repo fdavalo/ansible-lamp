@@ -55,7 +55,7 @@
     
 - name: Sets Up PHP FPM conf
   template:
-    src: "files/fpm.conf"
+    src: "files/fpm.conf.j2"
     dest: "/etc/php-fpm.d/www.conf"
     
 
