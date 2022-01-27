@@ -58,6 +58,10 @@
     src: "files/fpm.conf"
     dest: "/etc/php-fpm.d/www.conf"
     
+
+- name: disable selinux
+  shell: "setenforce 0"
+    
 - name: Reload Fpm
   service:
     name: php-fpm 
