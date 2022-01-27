@@ -110,7 +110,9 @@ spec:
 
           chmod +x ./virtctl
 
-          ./virtctl expose vmi $(params.vm) --port=22 --name=$(params.vm)-ssh --type=NodePort
+          #You can use NodePort for SDN, LoadBalancer for OVN
+          
+          ./virtctl expose vmi $(params.vm) --port=22 --name=$(params.vm)-ssh --type=LoadBalancer
 
           if [[ $? -eq 1 ]]; then echo "vmi could not be exposed"; exit 1; fi
 
@@ -137,7 +139,7 @@ spec:
 
         if [[ $createService -eq 1 ]]; then
         
-          #needed for OVN I think
+          #needed for OVN I think, allow externalIPs on Network config by admin
         
           externalIP=$(python -c "import socket;print(socket.gethostbyname(\"$url\"))")
 
