@@ -1,26 +1,4 @@
-# Repos yum
-- name: Copy redhat.rep
-  copy:
-    src: "files/redhat.repo"
-    dest: "/etc/yum.repos.d/redhat.repo"
-
-- name: create dir entitlement
-  shell: "mkdir -p /etc/pki/entitlement"
-  
-- name: Add entitlement
-  copy:
-    src: "files/entitlement.pem"
-    dest: "/etc/pki/entitlement/1804218658400383947.pem"
-
-- name: Add entitlement key
-  copy:
-    src: "files/entitlement-key.pem"
-    dest: "/etc/pki/entitlement/1804218658400383947-key.pem"
-
-- name: add proxy
-  shell: "echo yum-config-manager --save --setopt=proxy=http://192.168.100.1:8080/ main"
-
- 
+# Repos yum 
 - name: Install required packages
   yum:
     name: "{{ packages }}"
