@@ -136,6 +136,8 @@ spec:
 
         if [[ $create -eq 1 ]]; then
         
+          #needed for OVN I think
+        
           externalIP=$(python -c "import socket;print(socket.gethostbyname(\"$url\"))")
 
           ./oc patch svc $(params.vm)-ssh --type='json' -p='[{"op": "replace", "path": "/spec/ports/0/port", "value": '$port'}]'
