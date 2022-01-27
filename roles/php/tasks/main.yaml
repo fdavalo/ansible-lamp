@@ -14,7 +14,9 @@
       - php-xml 
       - php-xmlrpc 
       - php-soap
-
+      - php-mbstring
+      - php-mysqlnd
+      
 - name: Create apache group
   group:
     name: "{{ login_apache_user }}"
@@ -50,29 +52,26 @@
   template:
     src: "files/info.php.j2"
     dest: "/var/www/{{ http_host }}/info.php"
+    
+- name: Sets Up PHP FPM conf
+  template:
+    src: "files/fpm.conf"
+    dest: "/etc/php-fpm.d/www.conf"
+    
+- name: Reload Fpm
+  service:
+    name: php-fpm 
+    state: reloaded
 
+- name: Restart Fpm
+  service:
+    name: php-fpm
+    state: restarted
+    
 - name: Reload Apache
   service:
     name: httpd 
     state: reloaded
-
-- name: Restart Apache
-  service:
-    name: httpd
-    state: restarted
-    
-- name: Install required packages php55
-  yum:
-    name: "{{ packages }}"
-    state: present
-  vars:
-    packages:
-      - php-gd
-      - php-mbstring
-      - php-mysqlnd  
-  
-- name: update files php55
-  shell: "mv /etc/httpd/conf.d/php.conf /etc/httpd/conf.d/php54.off; mv /etc/httpd/conf.modules.d/10-php.conf /etc/httpd/conf.modules.d/10-php54.off; cp /opt/rh/httpd24/root/etc/httpd/conf.d/php55-php.conf /etc/httpd/conf.d/; cp /opt/rh/httpd24/root/etc/httpd/conf.modules.d/10-php55-php.conf /etc/httpd/conf.modules.d/; cp /opt/rh/httpd24/root/etc/httpd/modules/libphp55-php5.so /etc/httpd/modules/"
 
 - name: Restart Apache
   service:
