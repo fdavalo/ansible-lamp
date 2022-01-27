@@ -3,7 +3,7 @@ vm:
   sshpublickeyaccess: "ssh-rsa ...."
   storageclass: ocs-storagecluster-ceph-rbd
   source:
-    pvc: rhel7
+    pvc: rhel8
     namespace: openshift-virtualization-os-images 
 
   prefix: vm 
