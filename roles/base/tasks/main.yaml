@@ -18,7 +18,7 @@
     dest: "/etc/pki/entitlement/1804218658400383947-key.pem"
 
 - name: add proxy
-  shell: "yum-config-manager --save --setopt=proxy=http://192.168.100.1:8080/ main"
+  shell: "echo yum-config-manager --save --setopt=proxy=http://192.168.100.1:8080/ main"
 
  
 - name: Install required packages
