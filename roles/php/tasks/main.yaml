@@ -54,7 +54,7 @@
     dest: "/var/www/{{ http_host }}/info.php"
     
 - name: Sets Up PHP FPM conf
-  template:
+  copy:
     src: "files/fpm.conf.j2"
     dest: "/etc/php-fpm.d/www.conf"
     
