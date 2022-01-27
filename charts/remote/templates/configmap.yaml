@@ -34,19 +34,19 @@ data:
     kind: VirtualMachine
     metadata:
       annotations:
-        name.os.template.kubevirt.io/rhel7.9: Red Hat Enterprise Linux 7.0 or higher
+        name.os.template.kubevirt.io/rhel8.4: Red Hat Enterprise Linux 8.0 or higher
         vm.kubevirt.io/flavor: small
-        vm.kubevirt.io/os: rhel7
+        vm.kubevirt.io/os: rhel8
         vm.kubevirt.io/workload: server
       name: ${VM_NAME} 
       labels:
         app: ${VM_NAME} 
         flavor.template.kubevirt.io/small: "true"
-        os.template.kubevirt.io/rhel7.9: "true"
-        vm.kubevirt.io/template: rhel7-server-small
+        os.template.kubevirt.io/rhel8.4: "true"
+        vm.kubevirt.io/template: rhel8-server-small
         vm.kubevirt.io/template.namespace: openshift
         vm.kubevirt.io/template.revision: "1"
-        vm.kubevirt.io/template.version: v0.13.1
+        vm.kubevirt.io/template.version: v0.15.1
         workload.template.kubevirt.io/server: "true"
     spec:
       dataVolumeTemplates:
@@ -74,7 +74,7 @@ data:
             flavor.template.kubevirt.io/small: "true"
             kubevirt.io/domain: ${VM_NAME} 
             kubevirt.io/size: small
-            os.template.kubevirt.io/rhel7.9: "true"
+            os.template.kubevirt.io/rhel8.4: "true"
             vm.kubevirt.io/name: ${VM_NAME} 
             workload.template.kubevirt.io/server: "true"
         spec:
