@@ -100,10 +100,10 @@ spec:
         if [[ $? -eq 1 ]]; then echo "vmi not ready on expected time"; exit 1;
         fi
 
+        createService=0
+        
         ./oc get svc $(params.vm)-ssh
 
-        create=0
-        
         if [[ $? -eq 1 ]]; then
 
           curl https://github.com/kubevirt/kubevirt/releases/download/v0.39.0/virtctl-v0.39.0-linux-amd64 -L -o virtctl
@@ -114,7 +114,8 @@ spec:
 
           if [[ $? -eq 1 ]]; then echo "vmi could not be exposed"; exit 1; fi
 
-          create=1
+          createService=1
+          
         fi
 
         ./oc get route $(params.vm)-ssh
@@ -134,7 +135,7 @@ spec:
         port=$(./oc get svc $(params.vm)-ssh -o jsonpath='{
         .spec.ports[].nodePort}')
 
-        if [[ $create -eq 1 ]]; then
+        if [[ $createService -eq 1 ]]; then
         
           #needed for OVN I think
         
