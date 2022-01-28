@@ -396,7 +396,7 @@ spec:
     type: string
   steps:
   - image: registry.access.redhat.com/ubi7/ubi
-    name: create-vm
+    name: test-vm
     resources: {}
     script: |
         #!/usr/bin/env bash
@@ -404,6 +404,8 @@ spec:
         while [[ $nb -lt 10 ]]; do
           
           echo > /dev/tcp/$(params.hostname)/$(params.port)
+          
+          ret=$?
           
           if [[ $ret -eq 0 ]]; then nb=0; break; fi
           
