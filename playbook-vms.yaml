@@ -1,0 +1,14 @@
+# playbook-vms.yaml
+---
+  
+- name: Create vms
+  hosts: all 
+  become_method: sudo
+  become_user: root 
+  become: yes           # enable root privileges
+  gather_facts: yes     # collect useful variables about remote hosts
+  delegate_to: 127.0.0.1
+  vars_files:
+    - ./vars/default.yml
+  roles:
+    - vms
