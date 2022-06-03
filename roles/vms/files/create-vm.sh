@@ -13,7 +13,7 @@ if [[ $? -eq 1 ]]; then
 
   sed "s/\${VM_NAME}/${VM_NAME}/g" /tmp/vm-config.yaml > /tmp/vm-config.yaml.$$
 
-  sed -i "s/\${APP_NAME}/${VM_NAME}/g" /tmp/vm-config.yaml.$$
+  sed -i "s/\${APP_NAME}/${APP_NAME}/g" /tmp/vm-config.yaml.$$
 
   ./oc create -f /tmp/vm-config.yaml.$$
 
