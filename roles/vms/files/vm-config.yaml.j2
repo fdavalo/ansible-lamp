@@ -1,0 +1,94 @@
+apiVersion: kubevirt.io/v1alpha3
+kind: VirtualMachine
+metadata:
+  annotations:
+    name.os.template.kubevirt.io/rhel8.4: Red Hat Enterprise Linux 8.0 or higher
+    vm.kubevirt.io/flavor: small
+    vm.kubevirt.io/os: rhel8
+    vm.kubevirt.io/workload: server
+  name: ${VM_NAME} 
+  labels:
+    app: ${VM_NAME} 
+    flavor.template.kubevirt.io/small: "true"
+    os.template.kubevirt.io/rhel8.4: "true"
+    vm.kubevirt.io/template: rhel8-server-small
+    vm.kubevirt.io/template.namespace: openshift
+    vm.kubevirt.io/template.revision: "1"
+    vm.kubevirt.io/template.version: v0.15.1
+    workload.template.kubevirt.io/server: "true"
+spec:
+  dataVolumeTemplates:
+  - metadata:
+      creationTimestamp: null
+      name: ${VM_NAME}-disk 
+    spec:
+      pvc:
+        accessModes:
+        - ReadWriteMany
+        resources:
+          requests:
+            storage: 20Gi
+        storageClassName: ocs-storagecluster-ceph-rbd
+        volumeMode: Block
+      source:
+        pvc:
+          name: rhel8 
+          namespace: openshift-virtualization-os-images 
+  running: true 
+  template:
+    metadata:
+      labels:
+        service-selector: ${APP_NAME}
+        flavor.template.kubevirt.io/small: "true"
+        kubevirt.io/domain: ${VM_NAME} 
+        kubevirt.io/size: small
+        os.template.kubevirt.io/rhel8.4: "true"
+        vm.kubevirt.io/name: ${VM_NAME} 
+        workload.template.kubevirt.io/server: "true"
+    spec:
+      domain:
+        cpu:
+          cores: 1
+          sockets: 1
+          threads: 1
+        devices:
+          disks:
+          - disk:
+              bus: virtio
+            name: cloudinitdisk
+          - bootOrder: 1
+            disk:
+              bus: virtio
+            name: rootdisk
+          interfaces:
+          - masquerade: {}
+            model: virtio
+            name: default
+          networkInterfaceMultiqueue: true
+          rng: {}
+        machine:
+          type: pc-q35-rhel8.4.0
+        resources:
+          requests:
+            memory: 2Gi
+      evictionStrategy: LiveMigrate
+      hostname: ${VM_NAME} 
+      networks:
+      - name: default
+        pod: {}
+      terminationGracePeriodSeconds: 10
+      volumes:
+      - cloudInitNoCloud:
+          userData: |
+            #cloud-config
+            user: cloud-user
+            password: rhpoc
+            chpasswd:
+              expire: false
+            ssh_pwauth: True
+            #ssh_authorized_keys:
+            #  - ssh-rsa ....
+        name: cloudinitdisk
+      - dataVolume:
+          name: ${VM_NAME}-disk
+        name: rootdisk
