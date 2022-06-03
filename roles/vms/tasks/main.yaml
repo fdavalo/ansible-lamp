@@ -1,0 +1,12 @@
+- name: Set VM conf 
+  template:
+    src: "files/vm-config.yaml.j2"
+    dest: "/tmp/vm-config.yaml"
+
+- name: Set VM create script
+  template:
+    src: "files/create-vm.sh.j2"
+    dest: "/tmp/create-vm.sh"    
+
+- name: create vm php 1
+  shell: "sh /tmp/create-vm.sh ..."
