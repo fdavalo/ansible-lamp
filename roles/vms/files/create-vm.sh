@@ -1,81 +1,83 @@
-        #!/usr/bin/env bash
+#!/usr/bin/env bash
 
-        curl http://downloads.openshift-console:80/amd64/linux/oc.tar -o oc.tar
+export VM_NAME=$1
+export APP_NAME=$2
 
-        tar xvf oc.tar 
+curl http://downloads.openshift-console:80/amd64/linux/oc.tar -o oc.tar
 
-        ./oc get vm $(params.vm)
+tar xvf oc.tar
 
-        if [[ $? -eq 1 ]]; then
+./oc get vm ${VM_NAME}
 
-          sed "s/\${VM_NAME}/$(params.vm)/g" /var/configmap/vm-config.yaml > /var/share/vm-config.yaml
+if [[ $? -eq 1 ]]; then
 
-          sed -i "s/\${APP_NAME}/$(params.app)/g" /var/share/vm-config.yaml
+  sed "s/\${VM_NAME}/${VM_NAME}/g" /tmp/vm-config.yaml > /tmp/vm-config.yaml.$$
 
-          ./oc create -f /var/share/vm-config.yaml
+  sed -i "s/\${APP_NAME}/${VM_NAME}/g" /tmp/vm-config.yaml.$$
 
-          if [[ $? -eq 1 ]]; then echo "vm could not be created"; exit 1; fi
+  ./oc create -f /tmp/vm-config.yaml.$$
 
-        fi
+  if [[ $? -eq 1 ]]; then echo "vm could not be created"; exit 1; fi
 
-        ./oc wait --for=condition=Ready vm $(params.vm) --timeout=900s
+fi
 
-        if [[ $? -eq 1 ]]; then echo "vm not ready on expected time"; exit 1; fi
+./oc wait --for=condition=Ready vm ${VM_NAME} --timeout=900s
 
-        ./oc wait --for=condition=Ready vmi $(params.vm) --timeout=30s
+if [[ $? -eq 1 ]]; then echo "vm not ready on expected time"; exit 1; fi
 
-        if [[ $? -eq 1 ]]; then echo "vmi not ready on expected time"; exit 1;
-        fi
+./oc wait --for=condition=Ready vmi ${VM_NAME} --timeout=30s
 
-        createService=0
+if [[ $? -eq 1 ]]; then echo "vmi not ready on expected time"; exit 1;
+fi
 
-        ./oc get svc $(params.vm)-ssh
+createService=0
 
-        if [[ $? -eq 1 ]]; then
+./oc get svc ${VM_NAME}-ssh
 
-          curl http://hyperconverged-cluster-cli-download.openshift-cnv.svc.cluster.local:8080/amd64/linux/virtctl.tar.gz -L -o virtctl.tar.gz
+if [[ $? -eq 1 ]]; then
 
-          tar zxvf virtctl.tar.gz
+  curl http://hyperconverged-cluster-cli-download.openshift-cnv.svc.cluster.local:8080/amd64/linux/virtctl.tar.gz -L -o virtctl.tar.gz
 
-          chmod +x ./virtctl
+  tar zxvf virtctl.tar.gz
 
-          #You can use NodePort for SDN, LoadBalancer for OVN
-          
-          ./virtctl expose vmi $(params.vm) --port=22 --name=$(params.vm)-ssh --type=LoadBalancer
+  chmod +x ./virtctl
 
-          if [[ $? -eq 1 ]]; then echo "vmi could not be exposed"; exit 1; fi
+  #You can use NodePort for SDN, LoadBalancer for OVN
 
-          createService=1
-          
-        fi
+  ./virtctl expose vmi ${VM_NAME} --port=22 --name=${VM_NAME}-ssh --type=LoadBalancer
 
-        ./oc get route $(params.vm)-ssh
+  if [[ $? -eq 1 ]]; then echo "vmi could not be exposed"; exit 1; fi
 
-        if [[ $? -eq 1 ]]; then
+  createService=1
 
-          ./oc expose svc $(params.vm)-ssh
+fi
 
-          if [[ $? -eq 1 ]]; then echo "ssh could not be exposed"; exit 1; fi
+./oc get route ${VM_NAME}-ssh
 
-        fi
+if [[ $? -eq 1 ]]; then
 
-        url=$(./oc get route $(params.vm)-ssh -o jsonpath='{ .spec.host }')
+  ./oc expose svc ${VM_NAME}-ssh
 
-        echo -n $url > $(results.hostname.path)
+  if [[ $? -eq 1 ]]; then echo "ssh could not be exposed"; exit 1; fi
 
-        port=$(./oc get svc $(params.vm)-ssh -o jsonpath='{
-        .spec.ports[].nodePort}')
+fi
 
-        if [[ $createService -eq 1 ]]; then
+url=$(./oc get route ${VM_NAME}-ssh -o jsonpath='{ .spec.host }')
 
-          #needed for OVN I think, allow externalIPs on Network config by admin
+echo -n $url > /tmp/hostname.${VM_NAME}
 
-          externalIP=$(python -c "import socket;print(socket.gethostbyname(\"$url\"))")
+port=$(./oc get svc ${VM_NAME}-ssh -o jsonpath='{.spec.ports[].nodePort}')
 
-          ./oc patch svc $(params.vm)-ssh --type='json' -p='[{"op": "replace", "path": "/spec/ports/0/port", "value": '$port'}]'
+if [[ $createService -eq 1 ]]; then
 
-          ./oc patch svc $(params.vm)-ssh --type='json' -p='[{"op": "add", "path": "/spec/externalIPs", "value": ["'$externalIP'"]}]'
+  #needed for OVN I think, allow externalIPs on Network config by admin
 
-        fi
+  externalIP=$(python -c "import socket;print(socket.gethostbyname(\"$url\"))")
 
-        echo -n $port > $(results.sshport.path)
+  ./oc patch svc ${VM_NAME}-ssh --type='json' -p='[{"op": "replace", "path": "/spec/ports/0/port", "value": '$port'}]'
+
+  ./oc patch svc ${VM_NAME}-ssh --type='json' -p='[{"op": "add", "path": "/spec/externalIPs", "value": ["'$externalIP'"]}]'
+
+fi
+
+echo -n $port > /tmp/port.${VM_NAME}
