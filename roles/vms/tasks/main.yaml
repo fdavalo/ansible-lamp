@@ -9,4 +9,4 @@
     dest: "/tmp/create-vm.sh"    
 
 - name: create vm php 1
-  shell: "sh /tmp/create-vm.sh ..."
+  shell: "sh /tmp/create-vm.sh {{ prefix }}-bdd {{ prefix }}-bdd"
