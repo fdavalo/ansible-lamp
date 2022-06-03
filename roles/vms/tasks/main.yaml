@@ -5,7 +5,7 @@
 
 - name: Set VM create script
   template:
-    src: "files/create-vm.sh.j2"
+    src: "files/create-vm.sh"
     dest: "/tmp/create-vm.sh"    
 
 - name: create vm php 1
