@@ -2,9 +2,10 @@
 
 export VM_NAME=$1
 export PLAYBOOK = $2 
-export SSH_PORT = $3
-export EXTRA_ARGS = $4
+export EXTRA_ARGS = $3
 
+VM_HOSTNAME=`cat /tmp/hostname.${VM_NAME}`
+SSH_PORT=`cat /tmp/port.${VM_NAME}`
 
 awx --conf.host http://aap-controller-service.ansible.svc.cluster.local 
 --conf.username hpe-redhat --conf.password ${AAP_PASSWORD}
@@ -18,7 +19,7 @@ awx --conf.host http://aap-controller-service.ansible.svc.cluster.local
 
 awx --conf.host http://aap-controller-service.ansible.svc.cluster.local 
 --conf.username hpe-redhat --conf.password ${AAP_PASSWORD}
---conf.insecure hosts create --name ${VM_NAME} --inventory
+--conf.insecure hosts create --name ${VM_HOSTNAME} --inventory
 ${VM_NAME} --variables
 '{"ansible_port":${SSH_PORT},"ansible_connection":"ssh","ansible_user":"cloud-user","ansible_ssh_pass":"rhpoc"}'
 
