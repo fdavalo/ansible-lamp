@@ -4,10 +4,11 @@
     dest: "/tmp/install-vm.sh"    
 
 - name: install vm php 1
-  shell: "sh /tmp/install-vm.sh {{ prefix }}-php-1 {{ prefix }}-php"
+  shell: "sh /tmp/install-vm.sh {{ prefix }}-php-1 poc-php mysql_server={{ prefix }}-bdd"
   
 - name: install vm php 2
-  shell: "sh /tmp/install-vm.sh {{ prefix }}-php-2 {{ prefix }}-php"
+  shell: "sh /tmp/install-vm.sh {{ prefix }}-php-2 poc-php mysql_server={{ prefix }}-bdd"
   
 - name: install vm bdd
-  shell: "sh /tmp/install-vm.sh {{ prefix }}-bdd {{ prefix }}-bdd"
+  shell: "sh /tmp/install-vm.sh {{ prefix }}-bdd poc-bdd"
+
