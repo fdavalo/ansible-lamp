@@ -11,5 +11,5 @@
     - ./vars/default.yml
   roles:
     - vms
-    - installs
+    - install
     
