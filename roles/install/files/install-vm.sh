@@ -23,7 +23,7 @@ awx --conf.host http://aap-controller-service.ansible.svc.cluster.local \
 --conf.username hpe-redhat --conf.password ${AAP_PASSWORD} \
 --conf.insecure hosts create --name ${VM_HOSTNAME} --inventory \
 ${VM_NAME} --variables \
-'{"ansible_port":${SSH_PORT},"ansible_connection":"ssh","ansible_user":"cloud-user","ansible_ssh_pass":"rhpoc"}'
+'{"ansible_port":'${SSH_PORT}',"ansible_connection":"ssh","ansible_user":"cloud-user","ansible_ssh_pass":"rhpoc"}'
 
 awx --conf.host http://aap-controller-service.ansible.svc.cluster.local \
 --conf.username hpe-redhat --conf.password ${AAP_PASSWORD} \
