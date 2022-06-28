@@ -1,0 +1,13 @@
+- name: Set VM create script
+  template:
+    src: "files/install-vm.sh"
+    dest: "/tmp/install-vm.sh"    
+
+- name: install vm php 1
+  shell: "sh /tmp/install-vm.sh {{ prefix }}-php-1 {{ prefix }}-php"
+  
+- name: install vm php 2
+  shell: "sh /tmp/install-vm.sh {{ prefix }}-php-2 {{ prefix }}-php"
+  
+- name: install vm bdd
+  shell: "sh /tmp/install-vm.sh {{ prefix }}-bdd {{ prefix }}-bdd"
