@@ -3,9 +3,12 @@
 export VM_NAME=$1
 export APP_NAME=$2
 
-curl http://downloads.openshift-console:80/amd64/linux/oc.tar -o oc.tar
+if [[ ! -f ./oc ]]; then
 
-tar xvf oc.tar
+  curl http://downloads.openshift-console:80/amd64/linux/oc.tar -o oc.tar
+
+  tar xvf oc.tar
+fi
 
 ./oc get vm ${VM_NAME}
 
@@ -36,12 +39,14 @@ createService=0
 
 if [[ $? -eq 1 ]]; then
 
-  curl http://hyperconverged-cluster-cli-download.openshift-cnv.svc.cluster.local:8080/amd64/linux/virtctl.tar.gz -L -o virtctl.tar.gz
+  if [[ ! -f ./virtctl ]]; then
+    curl http://hyperconverged-cluster-cli-download.openshift-cnv.svc.cluster.local:8080/amd64/linux/virtctl.tar.gz -L -o virtctl.tar.gz
 
-  tar zxvf virtctl.tar.gz
+    tar zxvf virtctl.tar.gz
 
-  chmod +x ./virtctl
-
+    chmod +x ./virtctl
+  fi
+  
   #You can use NodePort for SDN, LoadBalancer for OVN
 
   ./virtctl expose vmi ${VM_NAME} --port=22 --name=${VM_NAME}-ssh --type=LoadBalancer
