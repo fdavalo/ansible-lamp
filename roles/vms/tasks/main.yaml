@@ -10,9 +10,27 @@
 
 - name: create vm php 1
   shell: "sh /tmp/create-vm.sh {{ prefix }}-php-1 {{ prefix }}-php"
+  register: _create_instances
+  async: 600  # Maximum runtime in seconds. Adjust as needed.
+  poll: 0  # Fire and continue (never poll)
   
 - name: create vm php 2
   shell: "sh /tmp/create-vm.sh {{ prefix }}-php-2 {{ prefix }}-php"
+  register: _create_instances
+  async: 600  # Maximum runtime in seconds. Adjust as needed.
+  poll: 0  # Fire and continue (never poll)
   
 - name: create vm bdd
   shell: "sh /tmp/create-vm.sh {{ prefix }}-bdd {{ prefix }}-bdd"
+  register: _create_instances
+  async: 600  # Maximum runtime in seconds. Adjust as needed.
+  poll: 0  # Fire and continue (never poll)
+
+- name: Wait for tasks to finish
+  async_status:
+      jid: "{{ item.ansible_job_id }}"
+  register: _jobs
+  until: _jobs.finished
+  delay: 5  # Check every 5 seconds. Adjust as you like.
+  retries: 10  # Retry up to 10 times. Adjust as needed.
+  with_items: "{{ _create_instances.results }}"  
