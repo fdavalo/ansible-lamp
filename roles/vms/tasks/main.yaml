@@ -28,9 +28,10 @@
 
 - name: Wait for tasks to finish
   async_status:
-      jid: "{{ item.ansible_job_id }}"
-  register: _jobs
-  until: _jobs.finished
-  delay: 5  # Check every 5 seconds. Adjust as you like.
-  retries: 10  # Retry up to 10 times. Adjust as needed.
-  with_items: "{{ _create_instances.results }}"  
+    jid: ""
+  loop: ""
+  loop_control:
+    loop_var: "async_result_item"
+  register: async_poll_results
+  until: async_poll_results.finished
+  retries: 300    
