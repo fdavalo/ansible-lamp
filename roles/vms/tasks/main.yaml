@@ -10,28 +10,10 @@
 
 - name: create vm php 1
   shell: "sh /tmp/create-vm.sh {{ prefix }}-php-1 {{ prefix }}-php"
-  register: _create_vm1
-  async: 600  # Maximum runtime in seconds. Adjust as needed.
-  poll: 0  # Fire and continue (never poll)
   
 - name: create vm php 2
   shell: "sh /tmp/create-vm.sh {{ prefix }}-php-2 {{ prefix }}-php"
-  register: _create_vm2
-  async: 600  # Maximum runtime in seconds. Adjust as needed.
-  poll: 0  # Fire and continue (never poll)
   
 - name: create vm bdd
   shell: "sh /tmp/create-vm.sh {{ prefix }}-bdd {{ prefix }}-bdd"
-  register: _create_vm3
-  async: 600  # Maximum runtime in seconds. Adjust as needed.
-  poll: 0  # Fire and continue (never poll)
-  
-- name: wait for all 3 tasks
-  async_status: jid="{{ item }}"
-  register: job_result
-  until: job_result.finished
-  retries: 300
-  with_items:
-        - "{{ _create_vm1.ansible_job_id }}"
-        - "{{ _create_vm2.ansible_job_id }}"
-        - "{{ _create_vm3.ansible_job_id }}"
+
