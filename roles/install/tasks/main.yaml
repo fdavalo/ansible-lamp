@@ -5,27 +5,28 @@
 
 - name: install vm php 1
   shell: "sh /tmp/install-vm.sh {{ prefix }}-php-1 poc-php mysql_server={{ prefix }}-bdd"
-  register: _create_instances
+  register: _install_vm1
   async: 600  # Maximum runtime in seconds. Adjust as needed.
   poll: 0  # Fire and continue (never poll)
   
 - name: install vm php 2
   shell: "sh /tmp/install-vm.sh {{ prefix }}-php-2 poc-php mysql_server={{ prefix }}-bdd"
-  register: _create_instances
+  register: _install_vm2
   async: 600  # Maximum runtime in seconds. Adjust as needed.
   poll: 0  # Fire and continue (never poll)
   
 - name: install vm bdd
   shell: "sh /tmp/install-vm.sh {{ prefix }}-bdd poc-bdd"
-  register: _create_instances
+  register: _install_vm3
   async: 600  # Maximum runtime in seconds. Adjust as needed.
   poll: 0  # Fire and continue (never poll)
 
-- name: Wait for tasks to finish
-  async_status:
-      jid: "{{ item.ansible_job_id }}"
-  register: _jobs
-  until: _jobs.finished
-  delay: 5  # Check every 5 seconds. Adjust as you like.
-  retries: 10  # Retry up to 10 times. Adjust as needed.
-  with_items: "{{ _create_instances.results }}"
+- name: wait for all 3 tasks
+  async_status: jid="{{ item }}"
+  register: job_result
+  until: job_result.finished
+  retries: 300
+  with_items:
+        - "{{ _install_vm1.ansible_job_id }}"
+        - "{{ _install_vm2.ansible_job_id }}"
+        - "{{ _install_vm3.ansible_job_id }}"  
